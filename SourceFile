@@ -1,0 +1,154 @@
+
+/*
+http://minesweeperonline.com/
+
+hemanth@highfive.com
+
+Reqs:
+1. The maximum size of the grid is pre-decided to be 9 X 9 as I wanted to avoid reading inputs
+2. 9 out of 9 cells have a mines initialized
+3. I have assumed the board once initalized as immutable. For this reason I am using a different board (temp) for printing out the current state of the board as and when the user inputs the cell position(row, col)
+4. If we need to know the exact position of mines we can enable the debug flag commented at the beginning.
+
+*/
+
+
+
+#include <iostream>
+#include <vector>
+#include <math.h>
+using namespace std;
+
+/*Uncomment this line to find out where mines are placed*/
+//#define DEBUG
+#define BOARD_SIDE 9
+#define NUM_MINES 9
+//Each direction on either side of the cell;
+vector<pair<int, int>> dirs = {{-1, -1},{-1,0}, {-1,1}, {0,-1}, {0,1}, {1,-1},{1,0}, {1,1}};
+
+/*mines N X 2 array will have the list of locations where mines are placed*/
+void place_mines(vector<vector<char>> &board, vector<vector<int>> &mines){
+  /*Have a list of places where mines are placed so that there are no duplications*/
+  vector<vector<bool>> mines_marked(BOARD_SIDE, vector<bool>(BOARD_SIDE, 0));
+  for(int i=0; i<NUM_MINES;){
+    int rand_position = rand()%(BOARD_SIDE*BOARD_SIDE);
+    mines[i][0] = rand_position/BOARD_SIDE; // this will randomize x & y
+    mines[i][1] = rand_position%BOARD_SIDE;
+    if(mines_marked[mines[i][0]][mines[i][1]] == false){
+      mines_marked[mines[i][0]][mines[i][1]] = true; //mark the mine location 
+      board[mines[i][0]][mines[i][1]] = '*'; //Indicative of a mine;
+      i++; //increment the number of mines only if it is placed;
+    } 
+  }
+}
+
+/*Move*/
+void onClick(int *x, int *y) {
+  cout << "Enter the cell position in the following format: row space col and hit enter"<<endl;
+  cin >> *x >> *y;
+}
+
+bool is_valid_posn(int row, int col){
+  
+  return row>=0 && row<BOARD_SIDE && col>=0 && col <BOARD_SIDE; //&& board[row][col]==' ';
+  
+}
+
+void print_op(vector<vector<char>> &board){
+  for(unsigned int i=0; i<board.size(); i++){
+    for(unsigned int j=0; j<board[i].size();j++){
+      cout<<" "<<board[i][j];
+    }
+    cout << endl;
+  }
+}
+
+bool is_not_mine(vector<vector<char>> &board, int row, int col){
+  return board[row][col]!='*'; //return if it's not a mine.
+}
+
+int count_mines(vector<vector<char>> &board, vector<vector<int>> &mines, int row, int col){
+  int count = 0;
+  for(auto dir: dirs){
+    if(is_valid_posn(dir.first+row, dir.second+col)){
+      if(!is_not_mine(board, dir.first+row, dir.second+col)){
+        count++;
+      }
+    }
+  }
+  return count;
+}
+/*This is crux of the problem*/
+bool play_mine_sweeper_helper(vector<vector<char>> &board, vector<vector<char>> &print_board, vector<vector<int>> &mines,int row, int col, int *num_moves_remaining){
+  //Base case when the current rowcol is already seen and number of moves remainging is zero
+  if(print_board[row][col] != 'N'){// || num_moves_remaining == 0){
+    return false;//Not a valid move as this is already seen.
+  }
+  if(board[row][col] == '*'){
+    /*To display - all mine locations on the board along with other numbers. 
+     This is where using a temp board is useful*/
+    for(int i=0; i<NUM_MINES;i++) {
+      print_board[mines[i][0]][mines[i][1]] = '*';
+    }
+    print_op(print_board);
+    cout << "stepped on a mine, you've lost, game over"<<endl;
+    return true;
+  }
+  else{
+    *num_moves_remaining--;
+    int count = count_mines(board, mines, row, col);
+    print_board[row][col]= count+'0'; //char conversion
+    if(!count){
+      for(pair<int, int> dir: dirs){
+        if(is_valid_posn(dir.first+row, dir.second+col)){
+          if(is_not_mine(board, dir.first+row, dir.second+col)){
+            if(play_mine_sweeper_helper(board, print_board, mines, dir.first+row, dir.second+col, num_moves_remaining) == true){
+              return true;
+            }
+          }
+        }
+      }
+    }
+  }
+  return false;
+}
+
+
+void play_mine_sweeper(void){
+  /*Initialize both the board used for playing and printing with empty spaces*/
+  srand(time (NULL));// Randomizes every single time this function is called from based on time function as a seed.
+  vector<vector<char>> board(BOARD_SIDE, vector<char>(BOARD_SIDE, 'N')); //main board
+  vector<vector<char>> print_board(BOARD_SIDE, vector<char>(BOARD_SIDE, 'N')); //print board used for display
+  /*vector used to reccord the x and y co-ordinates in the board*/
+  vector<vector<int>> mines(NUM_MINES, vector<int>(2,0));
+  
+  int num_moves_remaining = BOARD_SIDE*BOARD_SIDE - NUM_MINES;
+  int row, col;
+  bool game_over = false;
+  place_mines(board, mines);
+#ifdef DEBUG
+  cout << "Debug Board - Mine locations disclosed"<<endl;
+  print_op(board);
+  cout << endl;
+  
+#endif
+  /*loop as long as game is not over and number of moves doesn't exceed the number of empty cells*/
+  while(!game_over){
+    cout << "Current state of the board"<<endl;
+    print_op(print_board);
+    cout <<endl;
+    onClick(&row, &col);
+    game_over = play_mine_sweeper_helper(board, print_board, mines, row, col, &num_moves_remaining);
+    if(!game_over && num_moves_remaining == 0){
+      game_over = true;
+      cout << "You've won \n";
+    }
+  }
+  return;
+}
+
+// To execute C++, please define "int main()"
+int main() {
+  play_mine_sweeper();
+  return 0;
+}
