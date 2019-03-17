@@ -1,6 +1,9 @@
 
 /*
 http://minesweeperonline.com/
+
+hemanth@highfive.com
+
 Reqs:
 1. The maximum size of the grid is pre-decided to be 9 X 9 as I wanted to avoid reading inputs
 2. 9 out of 9 cells have a mines initialized
